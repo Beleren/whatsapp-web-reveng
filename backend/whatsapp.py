@@ -4,6 +4,9 @@
 import sys;
 sys.dont_write_bytecode = True;
 
+import binascii;
+from whatsapp_defines import WAMetrics;
+from whatsapp_binary_writer import whatsappWriteBinary;
 import os;
 import signal;
 import base64;
@@ -17,6 +20,7 @@ from time import sleep;
 from threading import Thread;
 from Crypto.Cipher import AES;
 from Crypto.Hash import SHA256;
+from Crypto import Random;
 import hashlib;
 import hmac;
 import traceback;
@@ -131,12 +135,17 @@ class WhatsAppWebClient:
             self.onCloseCallback["func"](self.onCloseCallback);
         eprint("WhatsApp backend Websocket closed.");
 
+    def keepAlive(self):
+        if self.activeWs is not None:
+            self.activeWs.send("?,,")
+            Timer(20.0, self.keepAlive).start()
+
     def onMessage(self, ws, message):
         try:
             messageSplit = message.split(",", 1);
             messageTag = messageSplit[0];
-            messageContent = messageSplit[1];
-            
+            if len(messageSplit) == 2: messageContent = messageSplit[1] 
+            else: messageContent = ''
             if messageTag in self.messageQueue:											# when the server responds to a client's message
                 pend = self.messageQueue[messageTag];
                 if pend["desc"] == "_status":
@@ -180,7 +189,7 @@ class WhatsAppWebClient:
                     if isinstance(jsonObj, list) and len(jsonObj) > 0:					# check if the result is an array
                         eprint(json.dumps(jsonObj));
                         if jsonObj[0] == "Conn":
-                            Timer(25, lambda: self.activeWs.send('?,,')).start() # Keepalive Request
+                            Timer(20.0, self.keepAlive).start()
                             self.connInfo["clientToken"] = jsonObj[1]["clientToken"];
                             self.connInfo["serverToken"] = jsonObj[1]["serverToken"];
                             self.connInfo["browserToken"] = jsonObj[1]["browserToken"];
@@ -218,7 +227,7 @@ class WhatsAppWebClient:
 
 
     def connect(self):
-        self.activeWs = websocket.WebSocketApp("wss://w1.web.whatsapp.com/ws",
+        self.activeWs = websocket.WebSocketApp("wss://web.whatsapp.com/ws",
                                                on_message = lambda ws, message: self.onMessage(ws, message),
                                                on_error = lambda ws, error: self.onError(ws, error),
                                                on_open = lambda ws: self.onOpen(ws),
@@ -253,6 +262,14 @@ class WhatsAppWebClient:
     
     def getConnectionInfo(self, callback):
         callback["func"]({ "type": "connection_info", "data": self.connInfo }, callback);
+
+    def getChatHistory(self):
+        eprint("TENTANDO PEGAR HISTORICO");
+        messageId = "3EB0"+binascii.hexlify(Random.get_random_bytes(8)).upper()
+        msgData = ["query",{ "type": "message", "kind": "before", "jid": "5511955582977-1535169260@g.us", "count": "50", "index": "3EB095E05A663ACA4246", "owner": "false", "epoch": "4" }, None];
+        encryptedMessage = WhatsAppEncrypt(self.loginInfo["key"]["encKey"], self.loginInfo["key"]["macKey"],whatsappWriteBinary(msgData))
+        payload = bytearray(messageId) + bytearray(",") + bytearray(to_bytes(WAMetrics.QUERY_MEDIA, 1)) + bytearray([0x80]) + encryptedMessage
+        self.activeWs.send(payload, websocket.ABNF.OPCODE_BINARY)
     
     def sendTextMessage(self, number, text):
         messageId = "3EB0"+binascii.hexlify(Random.get_random_bytes(8)).upper()

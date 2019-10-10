@@ -22,12 +22,12 @@ $(document).ready(function() {
     
     const responseTimeout = 10000;
     let bootstrapState = 0;
-    
+    let userInfo = {};
 
 
     let apiInfo = {
         url: "ws://localhost:2019",
-        timeout: 10000,
+        timeout: 100000,
         errors: {
             basic: {
                 timeout: "Timeout",
@@ -160,25 +160,32 @@ $(document).ready(function() {
                             </tr>*/
 
                             let d = whatsAppMessage.data;
-                            let viewJSONButton = $("<button></button>").addClass("btn").html("View").click(function() {
-                                let messageIndex = parseInt($(this).parent().parent().attr("data-message-index"));
-                                let jsonData = allWhatsAppMessages[messageIndex];
-                                let dialog = bootbox.dialog({
-                                    title: `WhatsApp message #${messageIndex+1}`,
-                                    message: "<p>Loading JSON...</p>"
+                            // let [ message ] = d;
+                            // if (message[0] === "Conn") {
+                            //    userInfo = { ...message[1] }
+                            // }
+                            if (true) {
+                                
+                                let viewJSONButton = $("<button></button>").addClass("btn").html("View").click(function() {
+                                    let messageIndex = parseInt($(this).parent().parent().attr("data-message-index"));
+                                    let jsonData = allWhatsAppMessages[messageIndex];
+                                    let dialog = bootbox.dialog({
+                                        title: `WhatsApp message #${messageIndex+1}`,
+                                        message: "<p>Loading JSON...</p>"
+                                    });
+                                    dialog.init(() => {
+                                        jsonTree.create(jsonData, dialog.find(".bootbox-body").empty()[0]);
+                                    });
                                 });
-                                dialog.init(() => {
-                                    jsonTree.create(jsonData, dialog.find(".bootbox-body").empty()[0]);
-                                });
-                            });
-                            
-                            let tableRow = $("<tr></tr>").attr("data-message-index", allWhatsAppMessages.length);
-                            tableRow.append($("<th></th>").attr("scope", "row").html(allWhatsAppMessages.length+1));
-                            tableRow.append($("<td></td>").html(moment.unix(d.timestamp/1000.0).format("ddd, DD.MM.YYYY, HH:mm:ss.SSS")));
-                            tableRow.append($("<td></td>").html(d.message_type));
-                            tableRow.append($("<td></td>").addClass("fill no-monospace").append(viewJSONButton));
-                            $("#messages-list-table-body").append(tableRow);
-                            allWhatsAppMessages.push(d.message);
+                                
+                                let tableRow = $("<tr></tr>").attr("data-message-index", allWhatsAppMessages.length);
+                                tableRow.append($("<th></th>").attr("scope", "row").html(allWhatsAppMessages.length+1));
+                                tableRow.append($("<td></td>").html(moment.unix(d.timestamp/1000.0).format("ddd, DD.MM.YYYY, HH:mm:ss.SSS")));
+                                tableRow.append($("<td></td>").html(d.message_type));
+                                tableRow.append($("<td></td>").addClass("fill no-monospace").append(viewJSONButton));
+                                $("#messages-list-table-body").append(tableRow);
+                                allWhatsAppMessages.push(d.message);
+                            }
 
                             //$("#main-container-content").empty();
                             //jsonTree.create(whatsAppMessage.data.message, $("#main-container-content")[0]);
