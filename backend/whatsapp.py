@@ -264,11 +264,10 @@ class WhatsAppWebClient:
         callback["func"]({ "type": "connection_info", "data": self.connInfo }, callback);
 
     def getChatHistory(self):
-        eprint("TENTANDO PEGAR HISTORICO");
         messageId = "3EB0"+binascii.hexlify(Random.get_random_bytes(8)).upper()
-        msgData = ["query",{ "type": "message", "kind": "before", "jid": "5511955582977-1535169260@g.us", "count": "50", "index": "3EB095E05A663ACA4246", "owner": "false", "epoch": "4" }, None];
+        msgData = ["query",{ "type": "message", "kind": "before", "jid": "5511972578075@s.whatsapp.net", "count": "1000", "owner": "false", "epoch": "4" }, None];
         encryptedMessage = WhatsAppEncrypt(self.loginInfo["key"]["encKey"], self.loginInfo["key"]["macKey"],whatsappWriteBinary(msgData))
-        payload = bytearray(messageId) + bytearray(",") + bytearray(to_bytes(WAMetrics.QUERY_MEDIA, 1)) + bytearray([0x80]) + encryptedMessage
+        payload = bytearray(messageId) + bytearray(",") + bytearray(to_bytes(WAMetrics.QUERY_MESSAGES, 1)) + bytearray([0x80]) + encryptedMessage
         self.activeWs.send(payload, websocket.ABNF.OPCODE_BINARY)
     
     def sendTextMessage(self, number, text):
